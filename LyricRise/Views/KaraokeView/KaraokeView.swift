@@ -228,7 +228,7 @@ struct KaraokeView: View {
     var karaokeLyricsText: some View {
         lyricsView()
             .lineLimit(2)
-            .foregroundStyle(.white)
+            .foregroundStyle(.primary)
             .minimumScaleFactor(0.9)
             .font(.custom(viewmodel.karaokeFont.fontName, size: viewmodel.karaokeFont.pointSize))
             .multilineTextAlignment(.center)

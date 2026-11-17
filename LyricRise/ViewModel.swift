@@ -202,6 +202,8 @@ import MediaRemoteAdapter
     var airplayDelay: Bool = false
     #endif
     var isFetchingTranslation = false
+    var translationNotNeeded = false
+    private var translationTaskID: UUID?
     var translationExists: Bool { !translatedLyric.isEmpty}
     
     // CoreData container (for saved lyrics)
@@ -514,29 +516,32 @@ import MediaRemoteAdapter
     
     @MainActor
     func translationTask(_ session: TranslationSession) async {
+        let taskID = UUID()
+        translationTaskID = taskID
         isFetchingTranslation = true
-        let translationResponse = await TranslationService.translationTask(session, request: currentlyPlayingLyrics.map { TranslationSession.Request(lyric: $0) })
-        
-        switch translationResponse {
-            case .success(let array):
-                print("Translation Service: isFetchingTranslation set to false due to success")
-                isFetchingTranslation = false
-                if currentlyPlayingLyrics.count == array.count {
-                    translatedLyric = array.map {
-                        $0.targetText
-                    }
-                }
-            case .needsConfigUpdate(let language):
-                // TODO: why do i sleep?
-//                try? await Task.sleep(for: .seconds(1))
-                translationSessionConfig = TranslationSession.Configuration(source: language, target: userLocaleLanguage)
-            case .failure:
-                print("Translation Service: isFetchingTranslation set to false due to failure")
-                isFetchingTranslation = false
-                return
+        translationNotNeeded = false
+        let response = await TranslationService.translationTask(session, request: currentlyPlayingLyrics.map { TranslationSession.Request(lyric: $0) })
+        guard translationTaskID == taskID else { return }
+        isFetchingTranslation = false
+        guard !Task.isCancelled, userDefaultStorage.translate else { return }
+
+        switch response {
+        case .success(let translations):
+            if currentlyPlayingLyrics.count == translations.count {
+                translatedLyric = translations.map(\.targetText)
+            }
+        case .needsConfigUpdate(let language):
+            let config = TranslationSession.Configuration(source: language, target: userLocaleLanguage)
+            guard translationSessionConfig != config else { return }
+            translationSessionConfig = config
+        case .notNeeded:
+            translatedLyric = []
+            translationNotNeeded = true
+        case .cancelled, .failure:
+            translatedLyric = []
         }
     }
-    
+
     func romanizeDidChange() {
         if userDefaultStorage.romanize {
             // Generate romanized lyrics from chinese conversion
@@ -1074,6 +1079,9 @@ import MediaRemoteAdapter
     
     #if os(macOS)
     func reloadTranslationConfigIfTranslating() -> Bool {
+        translationTaskID = nil
+        isFetchingTranslation = false
+        translationNotNeeded = false
         if userDefaultStorage.translate {
             if translationSessionConfig == TranslationSession.Configuration(source: translationSourceLanguage, target: userLocaleLanguage) {
                 translationSessionConfig?.invalidate()

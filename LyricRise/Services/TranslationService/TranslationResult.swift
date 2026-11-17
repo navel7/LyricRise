@@ -10,5 +10,7 @@ import Translation
 enum TranslationResult {
     case success([TranslationSession.Response])
     case needsConfigUpdate(Locale.Language)
+    case notNeeded
+    case cancelled
     case failure
 }

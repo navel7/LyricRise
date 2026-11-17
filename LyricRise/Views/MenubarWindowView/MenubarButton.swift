@@ -37,7 +37,7 @@ public struct MenubarButton: View {
                     }
                     if disabled {
                         Capsule()
-                            .fill(Color.white)
+                            .fill(.primary)
                             .frame(width: 32, height: 2)
                             .rotationEffect(.degrees(-45))
                     }
@@ -55,7 +55,6 @@ public struct MenubarButton: View {
                     .shadow(radius: disabled ? 0 : 7)
             )
         }
-        .environment(\.colorScheme, .dark)
         .disabled(disabled)
         .buttonStyle(.borderless)
     }
