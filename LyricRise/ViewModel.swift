@@ -161,11 +161,8 @@ import MediaRemoteAdapter
             fullscreen
         }
         set {
-            if fullscreen {
-                NSApp.windows.first {$0.identifier?.rawValue == "fullscreen"}?.makeKeyAndOrderFront(self)
-                NSApplication.shared.activate(ignoringOtherApps: true)
-            } else {
-                fullscreen = true
+            fullscreen = newValue
+            if newValue {
                 NSApp.setActivationPolicy(.regular)
             }
         }
@@ -188,7 +185,19 @@ import MediaRemoteAdapter
     var translatedLyric: [String] = []
     var showLyrics = true
     #if os(macOS)
-    var fullscreen = false
+    private var karaokeBeforeFullscreen: Bool?
+    var fullscreen = false {
+        didSet {
+            guard fullscreen != oldValue else { return }
+            if fullscreen {
+                karaokeBeforeFullscreen = userDefaultStorage.karaoke
+                userDefaultStorage.karaoke = false
+            } else if let karaokeBeforeFullscreen {
+                userDefaultStorage.karaoke = karaokeBeforeFullscreen
+                self.karaokeBeforeFullscreen = nil
+            }
+        }
+    }
     var spotifyConnectDelay: Bool = false
     var airplayDelay: Bool = false
     #endif
