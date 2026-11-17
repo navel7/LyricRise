@@ -565,12 +565,30 @@
         }
       }
     },
-    "Buy Me A Beer (Thank You)!" : {
+    "Buy the Original Developer a Beer (Thank You)!" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "作者にビールをおごる（ありがとうございます！）"
+            "value" : "原作者にビールをおごる（ありがとうございます！）"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请原作者喝杯啤酒（谢谢！）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請原作者喝杯啤酒（謝謝！）"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請原作者飲杯啤酒（多謝！）"
           }
         }
       }
@@ -4540,30 +4558,30 @@
         }
       }
     },
-    "Support the Fork Developer with a Coffee ☕️ (Thank You 🙏)" : {
+    "Support the Improved Version Developer with a Coffee ☕️ (Thank You 🙏)" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fork版開発者をコーヒーで支援する☕️（感謝🙏）"
+            "value" : "改良版開発者をコーヒーで支援する☕️（感謝🙏）"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请 Fork 版开发者喝杯咖啡 ☕️（感谢 🙏）"
+            "value" : "请改进版开发者喝杯咖啡 ☕️（感谢 🙏）"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請 Fork 版開發者喝杯咖啡 ☕️（感謝 🙏）"
+            "value" : "請改良版開發者喝杯咖啡 ☕️（感謝 🙏）"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請 Fork 版開發者飲杯咖啡 ☕️（感謝 🙏）"
+            "value" : "請改良版開發者飲杯咖啡 ☕️（感謝 🙏）"
           }
         }
       }
