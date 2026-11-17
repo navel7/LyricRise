@@ -40,7 +40,6 @@ struct LyricRise: App {
             }
         } label: {
             if let viewmodel {
-            // Text(Image) Doesn't render propertly in MenubarExtra. Stupid Apple. Must resort to if/else
             MenubarLabelView()
                 .environment(viewmodel)
             .task(id: viewmodel.currentlyPlaying) {
@@ -185,11 +184,16 @@ struct LyricRise: App {
                 }
             }
             } else {
-                Text("LyricRise")
-                    .task {
-                        await LegacyPreferencesMigration.prepareForLaunch()
-                        viewmodel = ViewModel.shared
-                    }
+                HStack(spacing: 4) {
+                    MenubarStatusIcon()
+                    Text("LyricRise")
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("LyricRise"))
+                .task {
+                    await LegacyPreferencesMigration.prepareForLaunch()
+                    viewmodel = ViewModel.shared
+                }
             }
         }
         .menuBarExtraStyle(.window)
