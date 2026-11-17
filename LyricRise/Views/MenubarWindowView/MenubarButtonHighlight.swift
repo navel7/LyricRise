@@ -20,6 +20,7 @@ enum MenubarButtonHighlight {
     case disableLyrics
     case unavailableLyrics
     case enableFullscreen
+    case disableFullscreen
     case enableKaraoke
     case disableKaraoke
     case unavailableKaraoke
@@ -65,6 +66,8 @@ enum MenubarButtonHighlight {
                 LocalizedStringKey("Lyrics unavailable.")
             case .enableFullscreen:
                 LocalizedStringKey("Open Fullscreen")
+            case .disableFullscreen:
+                LocalizedStringKey("Close Fullscreen")
             case .enableKaraoke:
                 LocalizedStringKey("Enable Karaoke")
             case .disableKaraoke:

@@ -26,7 +26,9 @@ enum MusicType {
 @main
 struct LyricRise: App {
     @State private var viewmodel: ViewModel?
+    @State private var fullscreenEscapeMonitor: Any?
     @Environment(\.openWindow) var openWindow
+    @Environment(\.dismissWindow) var dismissWindow
     @Environment(\.openURL) var openURL
     
     var body: some Scene {
@@ -143,6 +145,8 @@ struct LyricRise: App {
                 if viewmodel.fullscreen {
                     openWindow(id: "fullscreen")
                     NSApplication.shared.activate(ignoringOtherApps: true)
+                } else {
+                    dismissWindow(id: "fullscreen")
                 }
             }
             .onChange(of: viewmodel.userDefaultStorage.hasOnboarded) {
@@ -204,13 +208,13 @@ struct LyricRise: App {
                 .preferredColorScheme(.dark)
                 .environment(viewmodel)
                 .onAppear {
-                    // Block "Esc" button
-                    NSEvent.addLocalMonitorForEvents(matching: .keyDown) { (aEvent) -> NSEvent? in
-                            if aEvent.keyCode == 53 { // if esc pressed
-                                return nil
-                            }
-                            return aEvent
+                    fullscreenEscapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                        guard event.keyCode == 53, event.window?.identifier?.rawValue == "fullscreen" else {
+                            return event
                         }
+                        viewmodel.displayFullscreen = false
+                        return nil
+                    }
                     Task { @MainActor in
                         let window = NSApp.windows.first {$0.identifier?.rawValue == "fullscreen"}
                         window?.collectionBehavior = .fullScreenPrimary
@@ -220,6 +224,10 @@ struct LyricRise: App {
                     }
                 }
                 .onDisappear {
+                    if let fullscreenEscapeMonitor {
+                        NSEvent.removeMonitor(fullscreenEscapeMonitor)
+                        self.fullscreenEscapeMonitor = nil
+                    }
                     NSApp.setActivationPolicy(.accessory)
                     viewmodel.fullscreen = false
                 }

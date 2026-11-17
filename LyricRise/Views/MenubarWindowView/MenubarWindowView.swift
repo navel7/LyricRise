@@ -197,7 +197,7 @@ struct MenubarWindowView: View {
                 dismiss()
             }
             .onHover { isHovering in
-                currentHoveredItem = isHovering ? .enableFullscreen : .none
+                currentHoveredItem = isHovering ? (viewmodel.displayFullscreen ? .disableFullscreen : .enableFullscreen) : .none
             }
 //            .foregroundStyle(.white)
             MenubarButton(buttonText: "", imageText: "dock.rectangle", buttonState: displayKaraoke) {
