@@ -47,11 +47,11 @@ struct KaraokeSettingsView: View {
             .toggleStyle(.checkbox)
             .padding(.bottom, 20)
             
-            Text("Lyric timing: \(timingDescription)")
+            Text("Karaoke and menu bar lyric timing: \(timingDescription)")
             HStack {
                 Text("Earlier")
                 Slider(value: $karaokeTimingAdjustment, in: -2...0, step: 0.25)
-                    .accessibilityLabel("Karaoke lyric timing")
+                    .accessibilityLabel("Karaoke and menu bar lyric timing")
                     .accessibilityValue(timingDescription)
                 Text("Original")
             }

@@ -85,12 +85,13 @@ struct MenubarLabelView: View {
         }
         if !viewmodel.fullscreen, !viewmodel.userDefaultStorage.karaoke,
            viewmodel.isPlaying, viewmodel.showLyrics,
-           let index = viewmodel.currentlyPlayingLyricsIndex {
-            if viewmodel.translationExists {
+           let index = viewmodel.currentlyPlayingKaraokeLyricsIndex,
+           viewmodel.currentlyPlayingLyrics.indices.contains(index) {
+            if viewmodel.translatedLyric.indices.contains(index) {
                 return .lyric(viewmodel.translatedLyric[index])
-            } else if !viewmodel.romanizedLyrics.isEmpty {
+            } else if viewmodel.romanizedLyrics.indices.contains(index) {
                 return .lyric(viewmodel.romanizedLyrics[index])
-            } else if !viewmodel.chineseConversionLyrics.isEmpty {
+            } else if viewmodel.chineseConversionLyrics.indices.contains(index) {
                 return .lyric(viewmodel.chineseConversionLyrics[index])
             } else {
                 return .lyric(viewmodel.currentlyPlayingLyrics[index].words)
