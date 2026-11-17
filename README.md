@@ -9,7 +9,7 @@ This is a modified version of [Lyric Fever by aviwad](https://github.com/aviwad/
 ## Main changes from the original
 
 - **Glass-style background:** On macOS Tahoe 26 or later, the karaoke window uses Liquid Glass. On macOS 15, it keeps the previous background style.
-- **Earlier lyric display:** Show karaoke lyrics up to 2 seconds earlier, in 0.25-second steps. Choose **Original** to use the original timing.
+- **Earlier lyric display:** Show karaoke and menu bar lyrics up to 2 seconds earlier, in 0.25-second steps. Choose **Original** to use the original timing.
 - **Remembered lyric position:** Lyrics return to their saved window position after restarting.
 - **Manual updates:** Automatic updates and the original app's mandatory-update check are disabled. **View Releases…** opens this version's download page.
 
