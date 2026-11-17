@@ -225,8 +225,12 @@ struct MenubarWindowView: View {
         @Bindable var viewmodel = viewmodel
         Section("Translation Options") {
             if viewmodel.userDefaultStorage.translate {
-                Text(!viewmodel.translatedLyric.isEmpty ? "Translated Lyrics 😃" : "No Translation ☹️")
-                if viewmodel.translatedLyric.isEmpty {
+                if viewmodel.translationNotNeeded {
+                    Text("Translation not needed")
+                } else {
+                    Text(!viewmodel.translatedLyric.isEmpty ? "Translated Lyrics 😃" : "No Translation ☹️")
+                }
+                if viewmodel.translatedLyric.isEmpty && !viewmodel.translationNotNeeded {
                     Button("Translation Help") {
                         openURL(URL(string: "https://aviwadhwa.com/TranslationHelp")!)
                     }
@@ -357,7 +361,7 @@ struct MenubarWindowView: View {
         if viewmodel.userDefaultStorage.translate {
             if viewmodel.isFetchingTranslation {
                 return .loading
-            } else if viewmodel.translationExists {
+            } else if viewmodel.translationExists || viewmodel.translationNotNeeded {
                 return .enabled
             } else {
                 return .missing
@@ -439,7 +443,7 @@ struct MenubarWindowView: View {
                 if isHovering {
                     switch translationState {
                         case .enabled:
-                            currentHoveredItem = .translateEnabled
+                            currentHoveredItem = viewmodel.translationNotNeeded ? .translationNotNeeded : .translateEnabled
                         case .disabled:
                             currentHoveredItem = .translationUnavailable
                         case .loading:

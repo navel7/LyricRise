@@ -29,6 +29,7 @@ enum MenubarButtonHighlight {
     case search
     case translate
     case translateEnabled
+    case translationNotNeeded
     case translationFail
     case translationLoading
     case translationUnavailable
@@ -84,6 +85,8 @@ enum MenubarButtonHighlight {
                 LocalizedStringKey("Translation options")
             case .translateEnabled:
                 LocalizedStringKey("Translation Enabled")
+            case .translationNotNeeded:
+                LocalizedStringKey("Translation not needed")
             case .translationFail:
                 LocalizedStringKey("Translation Failure")
             case .translationLoading:

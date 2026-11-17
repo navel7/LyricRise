@@ -3510,6 +3510,14 @@
         }
       }
     },
+    "Translation not needed" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "翻訳は不要です" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无需翻译" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "不需要翻譯" } },
+        "zh-Hant-HK" : { "stringUnit" : { "state" : "translated", "value" : "不需要翻譯" } }
+      }
+    },
     "Translated Lyrics 😃" : {
       "localizations" : {
         "zh-Hans" : {

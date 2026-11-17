@@ -120,7 +120,7 @@ struct LyricRise: App {
             .onChange(of: viewmodel.translationSourceLanguage) {
                 // don't call reloadTranslationConfigIfTranslating(), that invalidates when config is the same
                 if viewmodel.userDefaultStorage.translate {
-                    viewmodel.translationSessionConfig = TranslationSession.Configuration(source: viewmodel.translationSourceLanguage, target: viewmodel.userLocaleLanguage)
+                    let _ = viewmodel.reloadTranslationConfigIfTranslating()
                 }
             }
             .onChange(of: viewmodel.userLocaleLanguage) {
