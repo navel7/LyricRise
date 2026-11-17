@@ -100,8 +100,14 @@ class FloatingPanel<Content: View>: NSPanel {
         standardWindowButton(.zoomButton)?.isHidden = true
 //        let glassview = NSGlassEffectView()
 //        appearance = NSAppearance(named: .darkAqua)
+        let colorScheme: ColorScheme?
+        if #available(macOS 26.0, *) {
+            colorScheme = nil
+        } else {
+            colorScheme = .dark
+        }
         let hostingview = NSHostingView(rootView: view()
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(colorScheme)
             .environment(\.floatingPanel, self))
 //        glassview.translatesAutoresizingMaskIntoConstraints = false
 //        hostingview.translatesAutoresizingMaskIntoConstraints = false

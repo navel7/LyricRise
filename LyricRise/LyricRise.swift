@@ -34,9 +34,14 @@ struct LyricRise: App {
     var body: some Scene {
         MenuBarExtra {
             if let viewmodel {
-                MenubarWindowView()
-                    .preferredColorScheme(.dark)
-                    .environment(viewmodel)
+                if #available(macOS 26.0, *) {
+                    MenubarWindowView()
+                        .environment(viewmodel)
+                } else {
+                    MenubarWindowView()
+                        .preferredColorScheme(.dark)
+                        .environment(viewmodel)
+                }
             } else {
                 Text("Preparing LyricRise…")
             }

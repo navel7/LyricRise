@@ -51,7 +51,6 @@ struct MenubarWindowView: View {
                         .clipShape(.rect(cornerRadius: 9))
                     
                     ProgressView()
-                        .environment(\.colorScheme, .dark)
                 }
             }
             .animation(.smooth(duration: 2), value: viewmodel.isFetching)
@@ -141,7 +140,6 @@ struct MenubarWindowView: View {
                     .progressViewStyle(ColoredThinProgressViewStyle(color: .secondary, thickness: 4))
                     .frame(height: 4)
                     .padding(.horizontal, 4)
-                    .environment(\.colorScheme, .dark)
                 
                 HStack {
                     Text(displayLyrics == .enabled ? viewmodel.formattedCurrentTime : "--:--")
@@ -549,7 +547,6 @@ struct MenubarWindowView: View {
 
                         Text("...")
                 }
-                .environment(\.colorScheme, .dark)
                 .menuIndicator(.hidden)
                 .onHover { isHovering in
                     if isHovering {
@@ -567,7 +564,6 @@ struct MenubarWindowView: View {
                         Text("...")
                 }
                 .frame(width: 30)
-                .environment(\.colorScheme, .dark)
                 .menuIndicator(.hidden)
                 .onHover { isHovering in
                     if isHovering {
@@ -640,7 +636,7 @@ struct MenubarWindowView: View {
             Text("\(viewmodel.userDefaultStorage.truncationLength)")
                 .frame(width: 23)
         }
-        .tint(.secondary)
+        .tint(sliderTint)
     }
 
     @ViewBuilder
@@ -658,9 +654,16 @@ struct MenubarWindowView: View {
             Text("\(seconds.formatted(.number.precision(.fractionLength(1))))s")
                 .frame(width: 27)
         }
-        .tint(.secondary)
+        .tint(sliderTint)
     }
     
+    private var sliderTint: Color? {
+        if #available(macOS 26.0, *) {
+            return nil
+        }
+        return .secondary
+    }
+
     var volumeBinding: Binding<Double> {
         Binding(
             get: { Double(viewmodel.currentVolume) },
@@ -695,7 +698,7 @@ struct MenubarWindowView: View {
             Text("\(viewmodel.currentVolume)")
                 .frame(width: 23)
         }
-        .tint(.secondary)
+        .tint(sliderTint)
     }
     
     var body: some View {
@@ -707,26 +710,32 @@ struct MenubarWindowView: View {
             viewSelector
             Divider()
             menubarSizeSlider
-                .environment(\.colorScheme, .dark)
             volumeSlider
-                .environment(\.colorScheme, .dark)
             if viewmodel.spotifyConnectDelay {
                 Divider()
                 spotifyDelaySlider
-                    .environment(\.colorScheme, .dark)
             }
             Divider()
             systemControlView
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(.primary)
         .padding(14)
-        .background(
-            viewmodel.currentBackground
-                .brightness(colorScheme == .dark ? -0.4 : -0.8)
-                .opacity(0.6)
-                .animation(.smooth, value: viewmodel.currentBackground)
-        )
-        .background(Color(white: 0.1))
+        .background {
+            if #available(macOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.clear)
+                    .glassEffect(
+                        .clear.tint((viewmodel.currentBackground ?? .clear).opacity(0.25)),
+                        in: .rect(cornerRadius: 16)
+                    )
+            } else {
+                viewmodel.currentBackground
+                    .brightness(colorScheme == .dark ? -0.4 : -0.8)
+                    .opacity(0.6)
+                    .animation(.smooth, value: viewmodel.currentBackground)
+                    .background(Color(white: 0.1))
+            }
+        }
         .onAppear {
             if !viewmodel.isStopped {
                 viewmodel.currentVolume = viewmodel.currentPlayerInstance.volume
@@ -742,4 +751,3 @@ struct MenubarWindowView: View {
         }
     }
 }
-
