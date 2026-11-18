@@ -256,7 +256,6 @@ struct LyricRise: App {
         }
         .windowResizability(.contentSize)
         .windowStyle(.hiddenTitleBar)
-        .windowLevel(.floating)
         Window("LyricRise: Searching for \(viewmodel?.currentlyPlayingName ?? "-") by \(viewmodel?.currentlyPlayingArtist ?? "-")", id: "search") {
             if let viewmodel {
             SearchWindow().frame(minWidth: 700, maxWidth: 700, minHeight: 500, maxHeight: 500, alignment: .center)
