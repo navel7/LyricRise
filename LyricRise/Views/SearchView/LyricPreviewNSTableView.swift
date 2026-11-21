@@ -31,7 +31,7 @@ struct LyricPreviewNSTableView: NSViewRepresentable {
         tableView.delegate = context.coordinator
         tableView.dataSource = context.coordinator
         tableView.headerView = nil
-        tableView.backgroundColor = .black
+        tableView.backgroundColor = .textBackgroundColor
         tableView.allowsMultipleSelection = false
         tableView.selectionHighlightStyle = .none
         tableView.intercellSpacing = NSSize(width: 5, height: 2)
@@ -78,7 +78,7 @@ extension LyricPreviewNSTableView.Coordinator: NSTableViewDelegate {
 
         let cell = NSTextField(labelWithString: text)
         cell.lineBreakMode = .byWordWrapping
-        cell.textColor = .white
+        cell.textColor = .labelColor
         return cell
     }
 }
