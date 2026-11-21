@@ -70,12 +70,31 @@ struct KaraokeSettingsView: View {
             }
             Text("Opacity Level")
             HStack {
-                Image(systemName: "circle")
+                opacityIcon(filled: false)
                     .accessibilityHidden(true)
-                Slider(value: $karaokeTransparency, in: 1...100, step: 5)
+                VStack(spacing: 1) {
+                    Slider(value: opacitySliderValue, in: 1...100)
                     .accessibilityLabel("Opacity Level")
                     .accessibilityValue("\(Int(karaokeTransparency)) percent")
-                Image(systemName: "circle.fill")
+                    .accessibilityAdjustableAction { direction in
+                        switch direction {
+                        case .increment: karaokeTransparency = min(100, karaokeTransparency + 5)
+                        case .decrement: karaokeTransparency = max(1, karaokeTransparency - 5)
+                        @unknown default: break
+                        }
+                    }
+                    HStack {
+                        Circle().frame(width: 2, height: 2)
+                        Spacer()
+                        Circle().frame(width: 2, height: 2)
+                        Spacer()
+                        Circle().frame(width: 2, height: 2)
+                    }
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 10)
+                    .accessibilityHidden(true)
+                }
+                opacityIcon(filled: true)
                     .accessibilityHidden(true)
             }
             .frame(width: 300, height: 24)
@@ -91,6 +110,47 @@ struct KaraokeSettingsView: View {
                 .font(.custom(viewmodel.karaokeFont.fontName, size: 13))
             
             .frame(width: 300, height: 24)
+
+    private var opacitySliderValue: Binding<Double> {
+        Binding(get: { karaokeTransparency }, set: { value in
+            let steps = ((value - 1) / 5).rounded()
+            karaokeTransparency = value == 100 ? 100 : min(100, 1 + steps * 5)
+        })
+    }
+
+    private func opacityIcon(filled: Bool) -> some View {
+        ZStack(alignment: .topLeading) {
+            let back = RoundedRectangle(cornerRadius: 2)
+            let front = RoundedRectangle(cornerRadius: 5)
+
+            if filled {
+                back.fill(.secondary)
+                    .frame(width: 12.5, height: 10)
+                    .mask(alignment: .topLeading) {
+                        Rectangle().fill(.white)
+                            .overlay(alignment: .topLeading) {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(.black)
+                                    .frame(width: 15, height: 12)
+                                    .offset(x: 2, y: 1.5)
+                                    .blendMode(.destinationOut)
+                            }
+                            .compositingGroup()
+                    }
+                front.fill(.secondary)
+                    .frame(width: 13, height: 10)
+                    .offset(x: 3, y: 2.5)
+            } else {
+                back.strokeBorder(.secondary, lineWidth: 0.9)
+                    .frame(width: 12.5, height: 10)
+                front.strokeBorder(.secondary, lineWidth: 0.9)
+                    .frame(width: 13, height: 10)
+                    .offset(x: 3, y: 2.5)
+            }
+        }
+        .frame(width: 16, height: 12.5, alignment: .topLeading)
+    }
+
             Button("Reset to default") {
                 viewmodel.userDefaultStorage.karaokeModeHoveringSetting = false
                 karaokeUseAlbumColor = true

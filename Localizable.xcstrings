@@ -4297,7 +4297,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不透明度"
+            "value" : "透明度"
           }
         }
       }
