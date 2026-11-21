@@ -9,6 +9,42 @@ import SwiftUI
 import AppKit
 import FontPicker
 
+enum KaraokeTextColor: String, CaseIterable {
+    case automatic, blue, purple, pink, red, orange, yellow, green, graphite, custom
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .automatic: "Automatic"
+        case .blue: "Blue"
+        case .purple: "Purple"
+        case .pink: "Pink"
+        case .red: "Red"
+        case .orange: "Orange"
+        case .yellow: "Yellow"
+        case .green: "Green"
+        case .graphite: "Graphite"
+        case .custom: "Choose Color…"
+        }
+    }
+
+    func color(customHex: String) -> Color {
+        let hex: String
+        switch self {
+        case .automatic: return .primary
+        case .blue: hex = "#AED7FF"
+        case .purple: hex = "#DFC2E1"
+        case .pink: hex = "#FFC5E1"
+        case .red: hex = "#FFC3C3"
+        case .orange: hex = "#FFD7B3"
+        case .yellow: hex = "#FFF0B5"
+        case .green: hex = "#C9E8C2"
+        case .graphite: hex = "#DDDDDD"
+        case .custom: hex = customHex
+        }
+        return NSColor(hexString: hex).map { Color($0) } ?? .primary
+    }
+}
+
 struct KaraokeSettingsView: View {
     @Environment(ViewModel.self) var viewmodel
     @AppStorage("karaokeUseAlbumColor") var karaokeUseAlbumColor: Bool = true
@@ -16,6 +52,8 @@ struct KaraokeSettingsView: View {
     @AppStorage("karaokeModeHoveringSetting") var karaokeModeHoveringSetting: Bool = false
     @AppStorage("karaokeShowMultilingual") var karaokeShowMultilingual: Bool = true
     @AppStorage("karaokeTransparency") var karaokeTransparency: Double = 50
+    @AppStorage("karaokeTextColor") private var karaokeTextColor: KaraokeTextColor = .automatic
+    @AppStorage("karaokeCustomTextColorHex") private var karaokeCustomTextColorHex = "#FFFFFF"
     @AppStorage("karaokeTimingAdjustment") var karaokeTimingAdjustment: Double = -0.5
 
     private var timingDescription: String {
@@ -98,6 +136,33 @@ struct KaraokeSettingsView: View {
                     .accessibilityHidden(true)
             }
             .frame(width: 300, height: 24)
+            HStack {
+                Picker("Karaoke Text Color", selection: $karaokeTextColor) {
+                    Label {
+                        Text(KaraokeTextColor.automatic.title)
+                    } icon: {
+                        colorSwatch(LinearGradient(colors: [.blue, .pink, .orange], startPoint: .leading, endPoint: .trailing))
+                    }
+                    .tag(KaraokeTextColor.automatic)
+                    Divider()
+                    ForEach(KaraokeTextColor.allCases.filter { $0 != .automatic && $0 != .custom }, id: \.self) { option in
+                        colorOption(option)
+                    }
+                    Divider()
+                    colorOption(.custom)
+                }
+                .pickerStyle(.menu)
+                if karaokeTextColor == .custom {
+                    ColorPicker("Custom Karaoke Text Color", selection: Binding {
+                        KaraokeTextColor.custom.color(customHex: karaokeCustomTextColorHex)
+                    } set: { color in
+                        if let hex = NSColor(color).hexString {
+                            karaokeCustomTextColorHex = hex
+                        }
+                    }, supportsOpacity: false)
+                    .labelsHidden()
+                }
+            }
             .padding(.bottom, 20)
             
             Text("Karaoke Font Appearance")
@@ -110,6 +175,27 @@ struct KaraokeSettingsView: View {
                 .font(.custom(viewmodel.karaokeFont.fontName, size: 13))
             
             .frame(width: 300, height: 24)
+            Button("Reset to default") {
+                viewmodel.userDefaultStorage.karaokeModeHoveringSetting = false
+                karaokeUseAlbumColor = true
+                karaokeTimingAdjustment = -0.5
+                viewmodel.userDefaultStorage.karaokeShowMultilingual = true
+                viewmodel.userDefaultStorage.karaokeTransparency = 50
+                karaokeTextColor = .automatic
+                karaokeCustomTextColorHex = "#FFFFFF"
+                viewmodel.karaokeFont = NSFont.boldSystemFont(ofSize: 30)
+//                viewmodel.karaokeFontSize = 30
+                colorBinding.wrappedValue = Color(.sRGB, red: 0.98, green: 0.0, blue: 0.98)
+                
+            }
+            Spacer()
+        }
+//        .padding(.vertical, 100)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .animation(.bouncy, value: karaokeUseAlbumColor)
+        .padding(.horizontal)
+        .padding(.top, 100)
+    }
 
     private var opacitySliderValue: Binding<Double> {
         Binding(get: { karaokeTransparency }, set: { value in
@@ -151,23 +237,23 @@ struct KaraokeSettingsView: View {
         .frame(width: 16, height: 12.5, alignment: .topLeading)
     }
 
-            Button("Reset to default") {
-                viewmodel.userDefaultStorage.karaokeModeHoveringSetting = false
-                karaokeUseAlbumColor = true
-                karaokeTimingAdjustment = -0.5
-                viewmodel.userDefaultStorage.karaokeShowMultilingual = true
-                viewmodel.userDefaultStorage.karaokeTransparency = 50
-                viewmodel.karaokeFont = NSFont.boldSystemFont(ofSize: 30)
-//                viewmodel.karaokeFontSize = 30
-                colorBinding.wrappedValue = Color(.sRGB, red: 0.98, green: 0.0, blue: 0.98)
-                
-            }
-            Spacer()
+    private func colorOption(_ option: KaraokeTextColor) -> some View {
+        Label {
+            Text(option.title)
+        } icon: {
+            colorSwatch(option.color(customHex: karaokeCustomTextColorHex))
         }
-//        .padding(.vertical, 100)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .animation(.bouncy, value: karaokeUseAlbumColor)
-        .padding(.horizontal)
-        .padding(.top, 100)
+        .tag(option)
+    }
+
+    @MainActor
+    private func colorSwatch(_ style: some ShapeStyle) -> Image {
+        let renderer = ImageRenderer(content: Circle().fill(style).frame(width: 14, height: 14))
+        renderer.scale = 2
+        guard let image = renderer.nsImage else {
+            return Image(systemName: "circle.fill")
+        }
+        image.isTemplate = false
+        return Image(nsImage: image).renderingMode(.original)
     }
 }
