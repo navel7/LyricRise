@@ -124,7 +124,7 @@ struct SearchWindow: View {
     var loadingView: some View {
         if isFetching {
             Rectangle()
-                .fill(Color.black.opacity(0.5))
+                .fill(.regularMaterial)
                 .frame(width: 80, height: 80)
                 .cornerRadius(10)
             ProgressView()

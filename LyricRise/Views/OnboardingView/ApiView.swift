@@ -36,7 +36,7 @@ struct ApiView: View {
                     
                     if loggedIn {
                         Rectangle()
-                            .fill(Color.black.opacity(0.5))
+                            .fill(.regularMaterial)
                         
                         VStack {
                             Text("You're Logged In 🙂")

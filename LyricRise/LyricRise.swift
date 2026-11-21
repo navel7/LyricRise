@@ -243,7 +243,6 @@ struct LyricRise: App {
             if let viewmodel {
             OnboardingWindow().frame(minWidth: 700, maxWidth: 700, minHeight: 600, maxHeight: 600, alignment: .center)
                 .environment(viewmodel)
-                .preferredColorScheme(.dark)
                 .onAppear {
                     NSApp.setActivationPolicy(.regular)
                 }
@@ -260,7 +259,6 @@ struct LyricRise: App {
             if let viewmodel {
             SearchWindow().frame(minWidth: 700, maxWidth: 700, minHeight: 500, maxHeight: 500, alignment: .center)
                 .environment(viewmodel)
-                .preferredColorScheme(.dark)
                 .onAppear {
                     NSApp.setActivationPolicy(.regular)
                 }
@@ -276,7 +274,6 @@ struct LyricRise: App {
             if let viewmodel {
             UpdateWindow().frame(minWidth: 700, maxWidth: 700, alignment: .center)
                 .environment(viewmodel)
-                .preferredColorScheme(.dark)
                 .onAppear {
                     NSApp.setActivationPolicy(.regular)
                 }
