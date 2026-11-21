@@ -123,6 +123,8 @@ struct KaraokeView: View {
     @Environment(ViewModel.self) var viewmodel
     @State private var displayedPillWidth: CGFloat?
     @AppStorage("karaokeTransparency") var karaokeTransparency: Double = 50
+    @AppStorage("karaokeTextColor") private var karaokeTextColor: KaraokeTextColor = .automatic
+    @AppStorage("karaokeCustomTextColorHex") private var karaokeCustomTextColorHex = "#FFFFFF"
     @AppStorage("karaokeShowMultilingual") var karaokeShowMultilingual: Bool = true
     @AppStorage("karaokeUseAlbumColor") var karaokeUseAlbumColor: Bool = true
     @AppStorage("fixedKaraokeColorHex") var fixedKaraokeColorHex: String = "#2D3CCC"
@@ -228,7 +230,7 @@ struct KaraokeView: View {
     var karaokeLyricsText: some View {
         lyricsView()
             .lineLimit(2)
-            .foregroundStyle(.primary)
+            .foregroundStyle(karaokeTextColor.color(customHex: karaokeCustomTextColorHex))
             .minimumScaleFactor(0.9)
             .font(.custom(viewmodel.karaokeFont.fontName, size: viewmodel.karaokeFont.pointSize))
             .multilineTextAlignment(.center)
