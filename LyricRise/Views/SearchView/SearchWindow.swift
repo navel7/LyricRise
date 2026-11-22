@@ -84,7 +84,6 @@ struct SearchWindow: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(lyricsAreApplied)
-                .tint(lyricsAreApplied ? .gray : .green)
             }
             .padding()
 //            .id(selectedLyric)
