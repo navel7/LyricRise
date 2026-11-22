@@ -26,6 +26,11 @@ struct MenubarWindowView: View {
     @State var supportedLanguages: [Locale.Language] = []
     @State private var panelAnchor = NSView(frame: .zero)
     @State private var isPanelVisible = false
+    @State private var progressDisplayDate = Date()
+
+    private var hasPlaybackProgress: Bool {
+        viewmodel.userDefaultStorage.hasOnboarded && viewmodel.duration > 0
+    }
     
     @ViewBuilder
     var profilePicViewHeaderView: some View {
@@ -145,12 +150,29 @@ struct MenubarWindowView: View {
                 }
                 songControls
                 
-                TimelineView(.animation(minimumInterval: 1, paused: !isPanelVisible || !viewmodel.isPlaying || displayLyrics != .enabled)) { timeline in
-                    playbackProgress(at: timeline.date)
+                playbackProgress(at: progressDisplayDate)
+                .task(id: isPanelVisible && viewmodel.isPlaying && hasPlaybackProgress) {
+                    guard isPanelVisible, viewmodel.isPlaying, hasPlaybackProgress else { return }
+                    do {
+                        while !Task.isCancelled {
+                            progressDisplayDate = Date()
+                            try await Task.sleep(for: .seconds(1))
+                        }
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        assertionFailure("Unexpected progress timer failure: \(error)")
+                    }
                 }
                 .onChange(of: viewmodel.isPlaying) {
                     if isPanelVisible { viewmodel.refreshPlaybackPosition() }
                 }
+                .onChange(of: viewmodel.currentlyPlaying) {
+                    if isPanelVisible, viewmodel.currentlyPlaying != nil {
+                        viewmodel.refreshPlaybackPosition()
+                    }
+                }
+                volumeSlider
             }
         }
         // even out vertical padding with divider as compared to Menubar button
@@ -160,13 +182,13 @@ struct MenubarWindowView: View {
     private func playbackProgress(at date: Date) -> some View {
         VStack {
             GeometryReader { geometry in
-                ProgressView(value: displayLyrics == .enabled ? viewmodel.lyricProgressTime(at: date) : 0, total: Double(viewmodel.duration))
+                ProgressView(value: hasPlaybackProgress ? viewmodel.lyricProgressTime(at: date) : 0, total: Double(max(1, viewmodel.duration)))
                     .progressViewStyle(ColoredThinProgressViewStyle(color: .secondary, thickness: 4))
                     .frame(height: 4)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
                     .onTapGesture { location in
-                        guard geometry.size.width > 0 else { return }
+                        guard hasPlaybackProgress, geometry.size.width > 0 else { return }
                         viewmodel.seekPlayback(to: location.x / geometry.size.width)
                     }
             }
@@ -174,7 +196,7 @@ struct MenubarWindowView: View {
             .padding(.horizontal, 4)
 
             HStack {
-                Text(displayLyrics == .enabled ? viewmodel.formattedCurrentTime(for: date) : "--:--")
+                Text(hasPlaybackProgress ? viewmodel.formattedCurrentTime(for: date) : "--:--")
                     .font(.caption2)
                 Spacer()
                 Text(viewmodel.formattedDuration)
@@ -542,34 +564,6 @@ struct MenubarWindowView: View {
         .padding(.top, 8)
     }
     
-    var menubarSizeSliderBinding: Binding<Double> {
-        Binding (
-            get: { Double(viewmodel.userDefaultStorage.truncationLength) },
-            set: { newValue in
-                let steps = [30, 40, 50, 60]
-                let closest = steps.min(by: { abs(Double($0) - newValue) < abs(Double($1) - newValue) }) ?? 40
-                viewmodel.userDefaultStorage.truncationLength = closest
-            }
-        )
-    }
-    
-    
-    @ViewBuilder
-    var menubarSizeSlider: some View {
-        @Bindable var viewmodel = viewmodel
-        HStack {
-            Image(systemName: "textformat.size")
-                .frame(width: 30)
-            Slider(value: menubarSizeSliderBinding, in: 30...60, step: 10, label: {
-                Text("Menubar Size")
-            })
-            .labelsHidden()
-            .frame(width: 160)
-            Text("\(viewmodel.userDefaultStorage.truncationLength)")
-                .frame(width: 23)
-        }
-        .tint(sliderTint)
-    }
 
     
     private var sliderTint: Color? {
@@ -591,10 +585,10 @@ struct MenubarWindowView: View {
     
     @ViewBuilder
     var volumeSlider: some View {
-        @Bindable var viewmodel = viewmodel
-        HStack {
-            Image(systemName: "speaker.wave.3", variableValue: Double(viewmodel.currentVolume)/100)
-                .frame(width: 30)
+        HStack(spacing: 6) {
+            Image(systemName: "speaker.fill")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             if #available(macOS 26.0, *) {
                 Slider(value: volumeBinding, in: 0...100) {
                     Text("Volume")
@@ -610,8 +604,9 @@ struct MenubarWindowView: View {
                 .labelsHidden()
                 .frame(width: 160)
             }
-            Text("\(viewmodel.currentVolume)")
-                .frame(width: 23)
+            Image(systemName: "speaker.wave.3.fill")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
         }
         .tint(sliderTint)
     }
@@ -633,8 +628,6 @@ struct MenubarWindowView: View {
             Divider()
             viewSelector
             Divider()
-            menubarSizeSlider
-            volumeSlider
             Divider()
             systemControlView
         }

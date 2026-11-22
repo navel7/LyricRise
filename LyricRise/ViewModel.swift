@@ -811,7 +811,6 @@ import MediaRemoteAdapter
                 stopLyricUpdater()
                 return
             }
-            self.currentTime = CurrentTimeWithStoredDate(currentTime: playbackTime)
             let currentTime = adjustedLyricTime(playbackTime)
             guard let lastIndex = upcomingIndex(currentTime, playbackTime: playbackTime) else { return }
             // If there is no current index (perhaps lyric updater started late and we're mid-way of the first lyric, or the user scrubbed and our index is expired)
@@ -852,7 +851,6 @@ import MediaRemoteAdapter
                 stopLyricUpdater()
                 return
             }
-            self.currentTime = CurrentTimeWithStoredDate(currentTime: playbackTime)
             let currentTime = adjustedLyricTime(playbackTime)
             guard let lastIndex = upcomingIndex(currentTime, playbackTime: playbackTime) else { return }
             // If there is no current index (perhaps lyric updater started late and we're mid-way of the first lyric, or the user scrubbed and our index is expired)

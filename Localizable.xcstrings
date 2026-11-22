@@ -761,6 +761,34 @@
         }
       }
     },
+    "Menu Bar Lyric Character Limit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メニューバーへの歌詞表示の文字数"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "菜单栏歌词显示字数"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列歌詞顯示字數"
+          }
+        },
+        "zh-Hant-HK": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列歌詞顯示字數"
+          }
+        }
+      }
+    },
     "Open": {
       "localizations": {
         "ja": {

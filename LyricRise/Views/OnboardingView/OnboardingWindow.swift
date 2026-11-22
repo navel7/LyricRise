@@ -56,6 +56,20 @@ struct OnboardingWindow: View {
                             LaunchAtLogin.Toggle(String(localized: "Launch at Login"))
                                 .disabled(!viewModel.userDefaultStorage.hasOnboarded)
                             Toggle("Show Song Details in Menubar", isOn: $viewModel.userDefaultStorage.showSongDetailsInMenubar)
+                            LabeledContent("Menu Bar Lyric Character Limit") {
+                                HStack {
+                                    Slider(value: Binding<Double>(
+                                        get: { Double(viewModel.userDefaultStorage.truncationLength) },
+                                        set: { viewModel.userDefaultStorage.truncationLength = Int($0) }
+                                    ), in: 30...60, step: 10) {
+                                        Text("Menu Bar Lyric Character Limit")
+                                    }
+                                    .labelsHidden()
+                                    .frame(width: 160)
+                                    Text("\(viewModel.userDefaultStorage.truncationLength)")
+                                        .monospacedDigit()
+                                }
+                            }
                         }
                         Section {
                             switch viewModel.updaterService.status {
