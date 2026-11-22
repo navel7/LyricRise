@@ -129,54 +129,33 @@ struct KaraokeView: View {
     @AppStorage("karaokeUseAlbumColor") var karaokeUseAlbumColor: Bool = true
     @AppStorage("fixedKaraokeColorHex") var fixedKaraokeColorHex: String = "#2D3CCC"
     
-    func currentWords(for currentlyPlayingLyricsIndex: Int) -> String {
-        if !viewmodel.romanizedLyrics.isEmpty {
-            return viewmodel.romanizedLyrics[currentlyPlayingLyricsIndex]
-        } else if !viewmodel.chineseConversionLyrics.isEmpty {
-            return viewmodel.chineseConversionLyrics[currentlyPlayingLyricsIndex]
-        } else {
-            return viewmodel.currentlyPlayingLyrics[currentlyPlayingLyricsIndex].words
-        }
-    }
-    
-    func multilingualView(_ currentlyPlayingLyricsIndex: Int) -> some View {
-        VStack(spacing: 6) {
-            Text(verbatim: currentWords(for: currentlyPlayingLyricsIndex))
-                
-//            Text(verbatim: viewmodel.romanizedLyrics.isEmpty ? viewmodel.currentlyPlayingLyrics[currentlyPlayingLyricsIndex].words : viewmodel.romanizedLyrics[currentlyPlayingLyricsIndex])
-            Text(verbatim: viewmodel.translatedLyric[currentlyPlayingLyricsIndex])
-                .font(.custom(viewmodel.karaokeFont.fontName, size: 0.9*(viewmodel.karaokeFont.pointSize)))
-                .opacity(0.85)
-        }
-    }
-    
-    func originalAndTranslationAreDifferent(for currentlyPlayingLyricsIndex: Int) -> Bool {
-        viewmodel.currentlyPlayingLyrics[currentlyPlayingLyricsIndex].words != viewmodel.translatedLyric[currentlyPlayingLyricsIndex]
-    }
-
     private var currentLyricSegments: [KaraokeLyricSegment] {
-        guard let currentlyPlayingLyricsIndex = viewmodel.currentlyPlayingKaraokeLyricsIndex else {
-            return []
+        guard let index = viewmodel.currentlyPlayingKaraokeLyricsIndex,
+              viewmodel.currentlyPlayingLyrics.indices.contains(index)
+        else { return [] }
+
+        let original = viewmodel.currentlyPlayingLyrics[index].words
+        let mainFontSize = viewmodel.karaokeFont.pointSize
+        let words: String
+        if viewmodel.romanizedLyrics.indices.contains(index) {
+            words = viewmodel.romanizedLyrics[index]
+        } else if viewmodel.chineseConversionLyrics.indices.contains(index) {
+            words = viewmodel.chineseConversionLyrics[index]
+        } else {
+            words = original
         }
 
-        let mainFontSize = viewmodel.karaokeFont.pointSize
-        if viewmodel.translationExists {
-            if karaokeShowMultilingual, originalAndTranslationAreDifferent(for: currentlyPlayingLyricsIndex) {
+        if viewmodel.translationExists, viewmodel.translatedLyric.indices.contains(index) {
+            let translation = viewmodel.translatedLyric[index]
+            if karaokeShowMultilingual, original != translation {
                 return [
-                    KaraokeLyricSegment(text: currentWords(for: currentlyPlayingLyricsIndex), fontSize: mainFontSize),
-                    KaraokeLyricSegment(text: viewmodel.translatedLyric[currentlyPlayingLyricsIndex], fontSize: mainFontSize * 0.9)
+                    KaraokeLyricSegment(text: words, fontSize: mainFontSize),
+                    KaraokeLyricSegment(text: translation, fontSize: mainFontSize * 0.9)
                 ]
             }
-            return [KaraokeLyricSegment(text: viewmodel.translatedLyric[currentlyPlayingLyricsIndex], fontSize: mainFontSize)]
+            return [KaraokeLyricSegment(text: translation, fontSize: mainFontSize)]
         }
-
-        if !viewmodel.romanizedLyrics.isEmpty {
-            return [KaraokeLyricSegment(text: viewmodel.romanizedLyrics[currentlyPlayingLyricsIndex], fontSize: mainFontSize)]
-        }
-        if !viewmodel.chineseConversionLyrics.isEmpty {
-            return [KaraokeLyricSegment(text: viewmodel.chineseConversionLyrics[currentlyPlayingLyricsIndex], fontSize: mainFontSize)]
-        }
-        return [KaraokeLyricSegment(text: viewmodel.currentlyPlayingLyrics[currentlyPlayingLyricsIndex].words, fontSize: mainFontSize)]
+        return [KaraokeLyricSegment(text: words, fontSize: mainFontSize)]
     }
 
     var hasVisibleCurrentLyric: Bool {
@@ -205,25 +184,16 @@ struct KaraokeView: View {
     
     @ViewBuilder
     func lyricsView() -> some View {
-        if let currentlyPlayingLyricsIndex = viewmodel.currentlyPlayingKaraokeLyricsIndex {
-            if viewmodel.translationExists {
-                if karaokeShowMultilingual, originalAndTranslationAreDifferent(for: currentlyPlayingLyricsIndex) {
-                    multilingualView(currentlyPlayingLyricsIndex)
-                }
-                else {
-                    Text(verbatim: viewmodel.translatedLyric[currentlyPlayingLyricsIndex])
-                }
-            } else {
-                if !viewmodel.romanizedLyrics.isEmpty {
-                    Text(verbatim: viewmodel.romanizedLyrics[currentlyPlayingLyricsIndex])
-                } else if !viewmodel.chineseConversionLyrics.isEmpty {
-                    Text(verbatim: viewmodel.chineseConversionLyrics[currentlyPlayingLyricsIndex])
-                } else {
-                    Text(verbatim: viewmodel.currentlyPlayingLyrics[currentlyPlayingLyricsIndex].words)
-                }
+        let segments = currentLyricSegments
+        if let first = segments.first, let second = segments.dropFirst().first {
+            VStack(spacing: 6) {
+                Text(verbatim: first.text)
+                Text(verbatim: second.text)
+                    .font(.custom(viewmodel.karaokeFont.fontName, size: second.fontSize))
+                    .opacity(0.85)
             }
         } else {
-            Text("")
+            Text(verbatim: segments.first?.text ?? "")
         }
     }
     

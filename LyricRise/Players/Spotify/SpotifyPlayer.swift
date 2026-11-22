@@ -30,7 +30,7 @@ class SpotifyPlayer: @MainActor Player {
             return nil
         }
         let viewmodel = ViewModel.shared
-        return playerPosition * 1000 + (viewmodel.spotifyConnectDelay ? Double(viewmodel.userDefaultStorage.spotifyConnectDelayCount) : 0) + (viewmodel.animatedDisplay ? 400 : 0) + (viewmodel.airplayDelay ?  -2000 : 0)
+        return playerPosition * 1000 + (viewmodel.animatedDisplay ? 400 : 0)
     }
     
     var duration: Int? {
@@ -86,6 +86,12 @@ class SpotifyPlayer: @MainActor Player {
     func setVolume(to newVolume: Double) {
         spotifyScript?.setSoundVolume?(Int(newVolume))
     }
+    func seek(to seconds: TimeInterval) -> Bool {
+        guard isAuthorized, let setPosition = spotifyScript?.setPlayerPosition else { return false }
+        setPosition(seconds)
+        return true
+    }
+
     func togglePlayback() {
         spotifyScript?.playpause?()
     }

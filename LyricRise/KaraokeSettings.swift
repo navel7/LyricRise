@@ -7,10 +7,23 @@
 
 import SwiftUI
 import AppKit
-import FontPicker
+
+@MainActor
+private final class KaraokeFontPanelTarget: NSObject {
+    weak var viewModel: ViewModel?
+
+    @objc func changeFont(_ sender: NSFontManager) {
+        guard let viewModel else { return }
+        viewModel.karaokeFont = sender.convert(viewModel.karaokeFont)
+    }
+}
 
 enum KaraokeTextColor: String, CaseIterable {
     case automatic, blue, purple, pink, red, orange, yellow, green, graphite, custom
+
+    static var presets: [Self] {
+        allCases.filter { $0 != .automatic && $0 != .custom }
+    }
 
     var title: LocalizedStringKey {
         switch self {
@@ -46,6 +59,7 @@ enum KaraokeTextColor: String, CaseIterable {
 }
 
 struct KaraokeSettingsView: View {
+    @State private var fontPanelTarget = KaraokeFontPanelTarget()
     @Environment(ViewModel.self) var viewmodel
     @AppStorage("karaokeUseAlbumColor") var karaokeUseAlbumColor: Bool = true
     @AppStorage("fixedKaraokeColorHex") var fixedKaraokeColorHex: String = "#2D3CCC"
@@ -59,7 +73,9 @@ struct KaraokeSettingsView: View {
     private var timingDescription: String {
         if abs(karaokeTimingAdjustment) < 0.05 { return String(localized: "Original timing") }
         let seconds = abs(karaokeTimingAdjustment).formatted(.number.precision(.fractionLength(2)))
-        return String(localized: "\(seconds) s earlier")
+        return karaokeTimingAdjustment < 0
+            ? String(localized: "\(seconds) s earlier")
+            : String(localized: "\(seconds) s later")
     }
     
     var colorBinding: Binding<Color> {
@@ -71,110 +87,121 @@ struct KaraokeSettingsView: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-            @Bindable var viewmodel = viewmodel
-            Text("Karaoke Behaviour")
-                .font(.system(size: 15, weight: .bold))
-            Toggle(isOn: $karaokeModeHoveringSetting) {
-                Text("Hide Karaoke window when mouse passes by")
-            }
-            .toggleStyle(.checkbox)
-            Toggle(isOn: $karaokeShowMultilingual) {
-                Text("Show multilingual lyrics when translating in Karaoke window")
-            }
-            .toggleStyle(.checkbox)
-            .padding(.bottom, 20)
-            
-            Text("Karaoke and menu bar lyric timing: \(timingDescription)")
-            HStack {
-                Text("Earlier")
-                Slider(value: $karaokeTimingAdjustment, in: -2...0, step: 0.25)
-                    .accessibilityLabel("Karaoke and menu bar lyric timing")
-                    .accessibilityValue(timingDescription)
-                Text("Original")
-            }
-            .frame(width: 300)
-            .padding(.bottom, 20)
-
-            Text("Karaoke Background Appearance")
-                    .font(.system(size: 15, weight: .bold))
-            
-            Toggle(isOn: $karaokeUseAlbumColor) {
-                Text("Use album color for Karaoke window")
-            }
-            .toggleStyle(.checkbox)
-            if !karaokeUseAlbumColor {
-                ColorPicker("Set a background color", selection: colorBinding, supportsOpacity: false)
-            }
-            Text("Opacity Level")
-            HStack {
-                opacityIcon(filled: false)
-                    .accessibilityHidden(true)
-                VStack(spacing: 1) {
-                    Slider(value: opacitySliderValue, in: 1...100)
-                    .accessibilityLabel("Opacity Level")
-                    .accessibilityValue("\(Int(karaokeTransparency)) percent")
-                    .accessibilityAdjustableAction { direction in
-                        switch direction {
-                        case .increment: karaokeTransparency = min(100, karaokeTransparency + 5)
-                        case .decrement: karaokeTransparency = max(1, karaokeTransparency - 5)
-                        @unknown default: break
+        Form {
+            Section("Karaoke Behaviour") {
+                Toggle("Hide Karaoke window when mouse passes by", isOn: $karaokeModeHoveringSetting)
+                Toggle("Show multilingual lyrics when translating in Karaoke window", isOn: $karaokeShowMultilingual)
+                GeometryReader { geometry in
+                    HStack(spacing: 8) {
+                        Text("Lyric display timing")
+                        Spacer(minLength: 8)
+                        if abs(karaokeTimingAdjustment) >= 0.05 {
+                            Text(timingDescription)
+                                .fixedSize()
+                                .accessibilityHidden(true)
                         }
+                        HStack(spacing: 4) {
+                            Image(systemName: "hare")
+                                .accessibilityHidden(true)
+                            Slider(value: $karaokeTimingAdjustment, in: -2...2, step: 0.25)
+                                .labelsHidden()
+                                .accessibilityLabel("Lyric display timing")
+                                .accessibilityValue(timingDescription)
+                            Image(systemName: "tortoise")
+                                .accessibilityHidden(true)
+                        }
+                        .frame(maxWidth: geometry.size.width * 0.5)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                }
+                .frame(height: 28)
+            }
+            Section("Karaoke Background Appearance") {
+                Toggle("Use album color for Karaoke window", isOn: $karaokeUseAlbumColor)
+                if !karaokeUseAlbumColor {
+                    ColorPicker("Set a background color", selection: colorBinding, supportsOpacity: false)
+                }
+                LabeledContent("Opacity Level") {
                     HStack {
-                        Circle().frame(width: 2, height: 2)
-                        Spacer()
-                        Circle().frame(width: 2, height: 2)
-                        Spacer()
-                        Circle().frame(width: 2, height: 2)
-                    }
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 10)
-                    .accessibilityHidden(true)
-                }
-                opacityIcon(filled: true)
-                    .accessibilityHidden(true)
-            }
-            .frame(width: 300, height: 24)
-            HStack {
-                Picker("Karaoke Text Color", selection: $karaokeTextColor) {
-                    Label {
-                        Text(KaraokeTextColor.automatic.title)
-                    } icon: {
-                        colorSwatch(LinearGradient(colors: [.blue, .pink, .orange], startPoint: .leading, endPoint: .trailing))
-                    }
-                    .tag(KaraokeTextColor.automatic)
-                    Divider()
-                    ForEach(KaraokeTextColor.allCases.filter { $0 != .automatic && $0 != .custom }, id: \.self) { option in
-                        colorOption(option)
-                    }
-                    Divider()
-                    colorOption(.custom)
-                }
-                .pickerStyle(.menu)
-                if karaokeTextColor == .custom {
-                    ColorPicker("Custom Karaoke Text Color", selection: Binding {
-                        KaraokeTextColor.custom.color(customHex: karaokeCustomTextColorHex)
-                    } set: { color in
-                        if let hex = NSColor(color).hexString {
-                            karaokeCustomTextColorHex = hex
+                        opacityIcon(filled: false)
+                            .accessibilityHidden(true)
+                        VStack(spacing: 1) {
+                            Slider(value: opacitySliderValue, in: 1...100)
+                            .accessibilityLabel("Opacity Level")
+                            .accessibilityValue("\(Int(karaokeTransparency)) percent")
+                            .accessibilityAdjustableAction { direction in
+                                switch direction {
+                                case .increment: karaokeTransparency = min(100, karaokeTransparency + 5)
+                                case .decrement: karaokeTransparency = max(1, karaokeTransparency - 5)
+                                @unknown default: break
+                                }
+                            }
+                            HStack {
+                                Circle().frame(width: 2, height: 2)
+                                Spacer()
+                                Circle().frame(width: 2, height: 2)
+                                Spacer()
+                                Circle().frame(width: 2, height: 2)
+                            }
+                            .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 10)
+                            .accessibilityHidden(true)
                         }
-                    }, supportsOpacity: false)
-                    .labelsHidden()
+                        opacityIcon(filled: true)
+                            .accessibilityHidden(true)
+                    }
+                    .frame(maxWidth: 260)
+                }
+                HStack {
+                    Picker("Karaoke Text Color", selection: $karaokeTextColor) {
+                        Label {
+                            Text(KaraokeTextColor.automatic.title)
+                        } icon: {
+                            colorSwatch(LinearGradient(
+                                colors: KaraokeTextColor.presets.map { $0.color(customHex: karaokeCustomTextColorHex) },
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                        }
+                        .tag(KaraokeTextColor.automatic)
+                        Divider()
+                        ForEach(KaraokeTextColor.presets, id: \.self) { option in
+                            colorOption(option)
+                        }
+                        Divider()
+                        colorOption(.custom)
+                    }
+                    .pickerStyle(.menu)
+                    if karaokeTextColor == .custom {
+                        ColorPicker("Custom Karaoke Text Color", selection: Binding {
+                            KaraokeTextColor.custom.color(customHex: karaokeCustomTextColorHex)
+                        } set: { color in
+                            if let hex = NSColor(color).hexString {
+                                karaokeCustomTextColorHex = hex
+                            }
+                        }, supportsOpacity: false)
+                        .labelsHidden()
+                    }
                 }
             }
-            .padding(.bottom, 20)
-            
-            Text("Karaoke Font Appearance")
-//                .bold()
-                .font(.system(size: 15, weight: .bold))
-            FontPicker("Select a Font:", selection: $viewmodel.karaokeFont)
-                .frame(height: 30)
-                .buttonStyle(.bordered)
-            Text("Font Selected: \(viewmodel.karaokeFont.displayName ?? ""), Size: \(Int(viewmodel.karaokeFont.pointSize))")
-                .font(.custom(viewmodel.karaokeFont.fontName, size: 13))
-            
-            .frame(width: 300, height: 24)
+            Section("Karaoke Font Appearance") {
+                LabeledContent("Font") {
+                    Button("Select a Font…") {
+                        let manager = NSFontManager.shared
+                        fontPanelTarget.viewModel = viewmodel
+                        manager.target = fontPanelTarget
+                        manager.setSelectedFont(viewmodel.karaokeFont, isMultiple: false)
+                        manager.orderFrontFontPanel(nil)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                Text("Karaoke Font Preview Sample")
+                    .font(.custom(viewmodel.karaokeFont.fontName, size: viewmodel.karaokeFont.pointSize))
+                    .foregroundStyle(karaokeTextColor.color(customHex: karaokeCustomTextColorHex))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+            }
+
             Button("Reset to default") {
                 viewmodel.userDefaultStorage.karaokeModeHoveringSetting = false
                 karaokeUseAlbumColor = true
@@ -184,17 +211,18 @@ struct KaraokeSettingsView: View {
                 karaokeTextColor = .automatic
                 karaokeCustomTextColorHex = "#FFFFFF"
                 viewmodel.karaokeFont = NSFont.boldSystemFont(ofSize: 30)
-//                viewmodel.karaokeFontSize = 30
                 colorBinding.wrappedValue = Color(.sRGB, red: 0.98, green: 0.0, blue: 0.98)
-                
             }
-            Spacer()
+            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
-//        .padding(.vertical, 100)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .animation(.bouncy, value: karaokeUseAlbumColor)
-        .padding(.horizontal)
-        .padding(.top, 100)
+        .formStyle(.grouped)
+        .toggleStyle(.switch)
+        .onDisappear {
+            if NSFontManager.shared.target === fontPanelTarget {
+                NSFontManager.shared.target = nil
+            }
+        }
     }
 
     private var opacitySliderValue: Binding<Double> {

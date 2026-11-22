@@ -35,7 +35,7 @@ class AppleMusicPlayer: Player {
             return nil
         }
         let viewmodel = ViewModel.shared
-        return playerPosition * 1000 + 400 + (viewmodel.animatedDisplay ? 400 : 0) + (viewmodel.airplayDelay ?  -2000 : 0)
+        return playerPosition * 1000 + 400 + (viewmodel.animatedDisplay ? 400 : 0)
     }
     var duration: Int? {
         guard let seconds = appleMusicScript?.currentTrack?.duration.map(Int.init) else {
@@ -83,6 +83,12 @@ class AppleMusicPlayer: Player {
     }
     func setVolume(to newVolume: Double) {
         appleMusicScript?.setSoundVolume?(Int(newVolume))
+    }
+
+    func seek(to seconds: TimeInterval) -> Bool {
+        guard isAuthorized, let setPosition = appleMusicScript?.setPlayerPosition else { return false }
+        setPosition(seconds)
+        return true
     }
     func togglePlayback() {
         appleMusicScript?.playpause?()

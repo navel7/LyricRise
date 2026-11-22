@@ -32,6 +32,8 @@ protocol Player {
     func increaseVolume()
     func setVolume(to newVolume: Double)
     func togglePlayback()
+    @MainActor
+    func seek(to seconds: TimeInterval) -> Bool
     func rewind()
     func forward()
     
