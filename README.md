@@ -9,9 +9,9 @@ This is a modified version of [Lyric Fever by aviwad](https://github.com/aviwad/
 ## Main changes from the original
 
 - **Glass-style background:** On macOS Tahoe 26 or later, the karaoke window uses Liquid Glass. On macOS 15, it keeps the previous background style.
-- **Earlier lyric display:** Show karaoke and menu bar lyrics up to 2 seconds earlier, in 0.25-second steps. Choose **Original** to use the original timing.
+- **Adjustable lyric timing:** Show lyrics up to 2 seconds earlier or later, in 0.25-second steps. The adjustment applies to karaoke, menu bar and fullscreen lyrics, as well as playback progress in the menu bar panel. Set it to zero to use the original timing.
 - **Remembered lyric position:** Lyrics return to their saved window position after restarting.
-- **Manual updates:** Automatic updates and the original app's mandatory-update check are disabled. **View Releases…** opens this version's download page.
+- **Update checks:** LyricRise checks GitHub Releases at launch and approximately every six hours while running. Installation is manual.
 
 ## Before installing
 
@@ -37,7 +37,7 @@ When you first open it, macOS may say that the developer cannot be verified or t
 
 ## How to update
 
-This version has **no automatic update feature**. Use **View Releases…** to open the download page and download a newer DMG. Quit the app, then replace it using the installation steps above.
+In **Settings → Main Settings**, select **Check for Updates** to check manually. If a newer version is available, use **Download Update** to open its GitHub release page and download the DMG. Quit LyricRise, then replace it using the installation steps above.
 
 ## Reporting problems
 
@@ -111,7 +111,6 @@ Please open a GitHub issue request to translate to more languages. Thank you ver
 - [lcandy2](https://github.com/lcandy2) For their [pull request](https://github.com/aviwad/LyricFever/pull/68)
 
 ## Acknowledgements / Special Thanks
-- [Sparkle:](https://github.com/sparkle-project/Sparkle) For app updates
 - [Amplitude:](https://amplitude.com) For app analytics
 - [Spotify:](https://spotify.com) The music platform this project depends on! (for playback, for lyrics)
 - [Apple Music:](https://music.apple.com/us/browse) Another platform that this project depends on
