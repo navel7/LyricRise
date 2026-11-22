@@ -34,8 +34,6 @@ class UserDefaultStorage {
     @ObservableUserDefault(.init(key: "chinesePreference", defaultValue: 0, store: .standard))
     @ObservationIgnored var chinesePreference: Int
     #if os(macOS)
-    @ObservableUserDefault(.init(key: "spotifyConnectDelayCount", defaultValue: 400, store: .standard))
-    @ObservationIgnored var spotifyConnectDelayCount: Int
     @ObservableUserDefault(.init(key: "hasMigrated", defaultValue: false, store: .standard))
     @ObservationIgnored var hasMigrated: Bool
     

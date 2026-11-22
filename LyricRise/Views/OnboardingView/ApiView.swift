@@ -10,7 +10,7 @@ import SDWebImageSwiftUI
 
 struct ApiView: View {
     @Environment(\.dismiss) var dismiss
-    @State private var isShowingDetailView = false
+    let onContinue: () -> Void
     @AppStorage("spDcCookie") var spDcCookie: String = ""
     @State var isLoading = false
     @State var errorMessage: String?
@@ -87,8 +87,6 @@ struct ApiView: View {
                     }
                 }
                 Spacer()
-                NavigationLink(destination: FinalTruncationView(), isActive: $isShowingDetailView) {EmptyView()}
-                    .hidden()
                 if errorMessage != nil, !isLoading {
                     Text("WRONG SP DC COOKIE TRY AGAIN ⚠️")
                         .foregroundStyle(.red)
@@ -103,7 +101,6 @@ struct ApiView: View {
                     // replace button with spinner
                     // check if the cookie is legit
                    // isLoading = false
-                    //isShowingDetailView = true
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(isLoading || spDcCookie.count == 0)
@@ -122,9 +119,9 @@ struct ApiView: View {
         Task {
             do {
                 try await ViewModel.shared.spotifyLyricProvider.generateAccessToken()
-                isShowingDetailView = true
                 errorMessage = nil
                 ViewModel.shared.userDefaultStorage.hasOnboarded = true
+                onContinue()
             } catch {
                 print("Failed to generate access token: \(error)")
                 errorMessage = String(describing: error)

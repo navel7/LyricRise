@@ -37,15 +37,40 @@ import MediaRemoteAdapter
 
     var duration: Int = 0
     var currentTime = CurrentTimeWithStoredDate(currentTime: 0)
-    
-    var formattedCurrentTime: String {
-        let baseTime = currentTime.currentTime
-        let totalSeconds = Int(baseTime) / 1000
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.minute, .second]
-        formatter.zeroFormattingBehavior = [.pad]
-        return formatter.string(from: TimeInterval(totalSeconds)) ?? "0:00"
+
+    private func adjustedLyricTime(_ playbackTime: Double) -> Double {
+        #if os(macOS)
+        return playbackTime - userDefaultStorage.karaokeTimingAdjustment * 1000
+        #else
+        return playbackTime
+        #endif
     }
+
+    func lyricProgressTime(at date: Date) -> Double {
+        let playbackTime = isPlaying
+            ? max(currentTime.currentTime, currentTime.adjustedCurrentTime(for: date))
+            : currentTime.currentTime
+        return min(max(0, adjustedLyricTime(playbackTime)), Double(max(0, duration)))
+    }
+
+    func refreshPlaybackPosition() {
+        let player = currentPlayerInstance
+        guard player.isRunning, let position = player.currentTime else { return }
+        currentTime = CurrentTimeWithStoredDate(currentTime: position)
+    }
+
+    func seekPlayback(to fraction: Double) {
+        guard fraction.isFinite, duration > 0 else { return }
+        let player = currentPlayerInstance
+        let position = min(max(fraction, 0), 1) * Double(duration)
+        guard player.seek(to: position / 1000) else { return }
+
+        currentTime = CurrentTimeWithStoredDate(currentTime: position)
+        if isPlaying, showLyrics {
+            startLyricUpdater()
+        }
+    }
+
     private func shouldHandlePlaybackUpdate(from player: PlayerType) -> Bool {
         currentPlayer == player
     }
@@ -79,11 +104,7 @@ import MediaRemoteAdapter
     }
     
     func formattedCurrentTime(for date: Date) -> String {
-        let baseTime = currentTime.currentTime
-        let delta = date.timeIntervalSince(currentTime.storedDate)
-//        print("Formatted Current Time: delta is \(delta)")
-        let totalSeconds = Int((baseTime + delta) / 1000)
-//        print("total seconds should be \(totalSeconds)")
+        let totalSeconds = Int(lyricProgressTime(at: date)) / 1000
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.minute, .second]
         formatter.zeroFormattingBehavior = [.pad]
@@ -198,8 +219,6 @@ import MediaRemoteAdapter
             }
         }
     }
-    var spotifyConnectDelay: Bool = false
-    var airplayDelay: Bool = false
     #endif
     var isFetchingTranslation = false
     var translationNotNeeded = false
@@ -757,8 +776,8 @@ import MediaRemoteAdapter
     }
     #endif
 
-    func upcomingIndex(_ currentTime: Double) -> Int? {
-        if let currentlyPlayingLyricsIndex {
+    func upcomingIndex(_ currentTime: Double, playbackTime: Double) -> Int? {
+        if let currentlyPlayingLyricsIndex, currentlyPlayingLyrics.indices.contains(currentlyPlayingLyricsIndex) {
             let newIndex = currentlyPlayingLyricsIndex + 1
             if newIndex >= currentlyPlayingLyrics.count {
                 print("REACHED LAST LYRIC!!!!!!!!")
@@ -767,6 +786,7 @@ import MediaRemoteAdapter
                 if currentTime < currentlyPlayingLyrics[currentlyPlayingLyricsIndex].startTimeMS {
                     return currentlyPlayingLyrics.firstIndex(where: {$0.startTimeMS > currentTime})
                 }
+                guard playbackTime >= currentlyPlayingLyrics[currentlyPlayingLyricsIndex].startTimeMS else { return nil }
                 // we've reached the end of the song, we're past the last lyric
                 //TODO: remove these
                 #if os(macOS)
@@ -787,10 +807,13 @@ import MediaRemoteAdapter
     
     func lyricUpdater() async throws {
         repeat {
-            guard let currentTime = currentPlayerInstance.currentTime, let lastIndex: Int = upcomingIndex(currentTime) else {
+            guard let playbackTime = currentPlayerInstance.currentTime else {
                 stopLyricUpdater()
                 return
             }
+            self.currentTime = CurrentTimeWithStoredDate(currentTime: playbackTime)
+            let currentTime = adjustedLyricTime(playbackTime)
+            guard let lastIndex = upcomingIndex(currentTime, playbackTime: playbackTime) else { return }
             // If there is no current index (perhaps lyric updater started late and we're mid-way of the first lyric, or the user scrubbed and our index is expired)
             // Then we set the current index to the one before our anticipated index
             if currentlyPlayingLyricsIndex == nil && lastIndex > 0 {
@@ -799,7 +822,6 @@ import MediaRemoteAdapter
             let nextTimestamp = currentlyPlayingLyrics[lastIndex].startTimeMS
             let diff = nextTimestamp - currentTime
             print("current time: \(currentTime)")
-            self.currentTime = CurrentTimeWithStoredDate(currentTime: currentTime)
             print("next time: \(nextTimestamp)")
             print("the difference is \(diff)")
             try await Task.sleep(nanoseconds: UInt64(1000000*diff))
@@ -826,15 +848,16 @@ import MediaRemoteAdapter
         }
         // If an index exists, we're unpausing: meaning we must instantly find the current lyric
         if currentlyPlayingLyricsIndex != nil {
-            guard let currentTime = currentPlayerInstance.currentTime, let lastIndex: Int = upcomingIndex(currentTime) else {
+            guard let playbackTime = currentPlayerInstance.currentTime else {
                 stopLyricUpdater()
                 return
             }
+            self.currentTime = CurrentTimeWithStoredDate(currentTime: playbackTime)
+            let currentTime = adjustedLyricTime(playbackTime)
+            guard let lastIndex = upcomingIndex(currentTime, playbackTime: playbackTime) else { return }
             // If there is no current index (perhaps lyric updater started late and we're mid-way of the first lyric, or the user scrubbed and our index is expired)
             // Then we set the current index to the one before our anticipated index
-            if lastIndex > 0 {
-                currentlyPlayingLyricsIndex = lastIndex-1
-            }
+            currentlyPlayingLyricsIndex = lastIndex > 0 ? lastIndex - 1 : nil
         } else {
             #if os(macOS)
             if currentPlayer == .spotify {
@@ -886,7 +909,7 @@ import MediaRemoteAdapter
                         currentlyPlayingKaraokeLyricsIndex = nil
                         return
                     }
-                    let displayTime = playbackTime - userDefaultStorage.karaokeTimingAdjustment * 1000
+                    let displayTime = adjustedLyricTime(playbackTime)
                     let nextIndex = currentlyPlayingLyrics.firstIndex { $0.startTimeMS > displayTime }
                         ?? currentlyPlayingLyrics.count
                     currentlyPlayingKaraokeLyricsIndex = nextIndex > 0 ? nextIndex - 1 : nil
@@ -1045,6 +1068,7 @@ import MediaRemoteAdapter
             object?.lyricsTimestamps.removeAll()
             object?.lyricsWords.removeAll()
             try coreDataContainer.viewContext.save()
+            stopLyricUpdater()
             currentlyPlayingLyricsIndex = nil
             currentlyPlayingLyrics = []
             translatedLyric = []
@@ -1068,7 +1092,6 @@ import MediaRemoteAdapter
                 print("Found SongObject with ID:", songObject.id)
                 return lyricsArray
             } else {
-            stopLyricUpdater()
                 // No SongObject found with the given trackID
                 print("No SongObject found with the provided trackID. \(trackID)")
             }

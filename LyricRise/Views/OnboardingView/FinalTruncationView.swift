@@ -10,6 +10,7 @@ import SwiftUI
 
 
 struct FinalTruncationView: View {
+    let onDone: () -> Void
     @Environment(\.dismiss) var dismiss
     //@AppStorage("truncationLength") var truncationLength: Int = 40
     @State var truncationLength: Int = UserDefaults.standard.integer(forKey: "truncationLength")
@@ -50,8 +51,7 @@ struct FinalTruncationView: View {
                 }
                 Spacer()
                 Button("Done") {
-                    NSApplication.shared.keyWindow?.close()
-                    
+                    onDone()
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -63,15 +63,5 @@ struct FinalTruncationView: View {
         }
         .padding(.horizontal, 20)
         .navigationBarBackButtonHidden(true)
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { newValue in
-            dismiss()
-            dismiss()
-            dismiss()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willMiniaturizeNotification)) { newValue in
-            dismiss()
-            dismiss()
-            dismiss()
-        }
     }
 }

@@ -5,9 +5,16 @@
 //  Created by Avi Wadhwa on 2025-07-26.
 //
 
+import AppKit
 import SwiftUI
-import LaunchAtLogin
 import Translation
+
+private struct PanelWindowAnchor: NSViewRepresentable {
+    let view: NSView
+
+    func makeNSView(context: Context) -> NSView { view }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
 
 struct MenubarWindowView: View {
     @Environment(\.openURL) var openURL
@@ -17,6 +24,8 @@ struct MenubarWindowView: View {
     @Environment(\.colorScheme) var colorScheme
     @State var currentHoveredItem = MenubarButtonHighlight.none
     @State var supportedLanguages: [Locale.Language] = []
+    @State private var panelAnchor = NSView(frame: .zero)
+    @State private var isPanelVisible = false
     
     @ViewBuilder
     var profilePicViewHeaderView: some View {
@@ -136,25 +145,45 @@ struct MenubarWindowView: View {
                 }
                 songControls
                 
-                ProgressView(value: displayLyrics == .enabled ? viewmodel.currentTime.currentTime : 0, total: Double(viewmodel.duration))
-                    .progressViewStyle(ColoredThinProgressViewStyle(color: .secondary, thickness: 4))
-                    .frame(height: 4)
-                    .padding(.horizontal, 4)
-                
-                HStack {
-                    Text(displayLyrics == .enabled ? viewmodel.formattedCurrentTime : "--:--")
-                        .font(.caption2)
-                    Spacer()
-                    Text(viewmodel.formattedDuration)
-                        .font(.caption2)
+                TimelineView(.animation(minimumInterval: 1, paused: !isPanelVisible || !viewmodel.isPlaying || displayLyrics != .enabled)) { timeline in
+                    playbackProgress(at: timeline.date)
                 }
-                .padding(.horizontal, 4)
+                .onChange(of: viewmodel.isPlaying) {
+                    if isPanelVisible { viewmodel.refreshPlaybackPosition() }
+                }
             }
         }
         // even out vertical padding with divider as compared to Menubar button
         .padding(.bottom, 2)
     }
     
+    private func playbackProgress(at date: Date) -> some View {
+        VStack {
+            GeometryReader { geometry in
+                ProgressView(value: displayLyrics == .enabled ? viewmodel.lyricProgressTime(at: date) : 0, total: Double(viewmodel.duration))
+                    .progressViewStyle(ColoredThinProgressViewStyle(color: .secondary, thickness: 4))
+                    .frame(height: 4)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture { location in
+                        guard geometry.size.width > 0 else { return }
+                        viewmodel.seekPlayback(to: location.x / geometry.size.width)
+                    }
+            }
+            .frame(height: 12)
+            .padding(.horizontal, 4)
+
+            HStack {
+                Text(displayLyrics == .enabled ? viewmodel.formattedCurrentTime(for: date) : "--:--")
+                    .font(.caption2)
+                Spacer()
+                Text(viewmodel.formattedDuration)
+                    .font(.caption2)
+            }
+            .padding(.horizontal, 4)
+        }
+    }
+
     var displayLyrics: ButtonState {
         if !viewmodel.userDefaultStorage.hasOnboarded {
             return .disabled
@@ -306,12 +335,6 @@ struct MenubarWindowView: View {
             }
         }
     }
-    
-    @ViewBuilder
-    var spotifyConnectDelayPicker: some View {
-        Text("TODO")
-    }
-    
     
     var displayFullscreen: ButtonState {
         if !viewmodel.userDefaultStorage.hasOnboarded {
@@ -488,118 +511,32 @@ struct MenubarWindowView: View {
     }
     
     @ViewBuilder
-    var streamingDelayView: some View {
-        @Bindable var viewmodel = viewmodel
-        if viewmodel.currentPlayer == .spotify {
-             Toggle("Spotify Connect Audio Delay", isOn: $viewmodel.spotifyConnectDelay)
-                 .disabled(!viewmodel.userDefaultStorage.hasOnboarded)
-            if viewmodel.spotifyConnectDelay {
-                 Text("Offset is \(viewmodel.userDefaultStorage.spotifyConnectDelayCount) ms")
-//                 if viewmodel.userDefaultStorage.spotifyConnectDelayCount != 3000 {
-//                     Button("Increase Offset to \(viewmodel.userDefaultStorage.spotifyConnectDelayCount+100)") {
-//                         viewmodel.userDefaultStorage.spotifyConnectDelayCount = viewmodel.userDefaultStorage.spotifyConnectDelayCount + 100
-//                     }
-//                 }
-//                if viewmodel.userDefaultStorage.spotifyConnectDelayCount != 300 {
-//                     Button("Decrease Offset to \(viewmodel.userDefaultStorage.spotifyConnectDelayCount-100)") {
-//                         viewmodel.userDefaultStorage.spotifyConnectDelayCount = viewmodel.userDefaultStorage.spotifyConnectDelayCount - 100
-//                     }
-//                 }
-             }
-            Toggle("AirPlay Audio Delay", isOn: $viewmodel.airplayDelay)
-                .disabled(!viewmodel.userDefaultStorage.hasOnboarded)
-            Divider()
-        }
-    }
-    
-    @ViewBuilder
-    var otherOptions: some View {
-        @Bindable var viewmodel = viewmodel
-        Toggle("Show Song Details in Menubar", isOn: $viewmodel.userDefaultStorage.showSongDetailsInMenubar)
-        Divider()
-        streamingDelayView
-        Button("Settings…") {
-            openWindow(id: "onboarding")
-            NSApplication.shared.activate(ignoringOtherApps: true)
-            // send notification to check auth
-            NotificationCenter.default.post(name: Notification.Name("didClickSettings"), object: nil)
-        }.keyboardShortcut("s")
-        LaunchAtLogin.Toggle(String(localized: "Launch at Login"))
-        .disabled(!viewmodel.userDefaultStorage.hasOnboarded)
-        .keyboardShortcut("l")
-        Button("View Releases…") {
-            openURL(viewmodel.updaterService.releasesURL)
-        }
-        .keyboardShortcut("u")
-        Divider()
-        Button("Buy the Original Developer a Beer (Thank You)!") {
-            openURL(URL(string: "https://buymeacoffee.com/aviwadhwalyricfever")!)
-        }
-        Button("Support the Improved Version Developer with a Coffee ☕️ (Thank You 🙏)") {
-            openURL(URL(string: "https://buymeacoffee.com/navel7")!)
-        }
-    }
-    
-    @ViewBuilder
     var systemControlView: some View {
         HStack {
-            if #available(macOS 26.0, *) {
-                Menu {
-                    otherOptions
-//                        .foregroundStyle(viewmodel.currentBackground ?? .primary)
-                } label: {
+            Button {
+                panelAnchor.window?.orderOut(nil)
+                openWindow(id: "onboarding")
+                NSApplication.shared.activate(ignoringOtherApps: true)
+                NotificationCenter.default.post(name: Notification.Name("didClickSettings"), object: nil)
+            } label: {
+                Image(systemName: "gearshape")
+                    .accessibilityLabel("Settings…")
+            }
+            .help(Text("Settings…"))
+            .keyboardShortcut("s")
+            .background {
+                PanelWindowAnchor(view: panelAnchor)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
 
-                        Text("...")
-                }
-                .menuIndicator(.hidden)
-                .onHover { isHovering in
-                    if isHovering {
-                        currentHoveredItem = .moreOptions
-                    } else {
-                        currentHoveredItem = .none
-                    }
-                }
-            } else {
-                Menu {
-                    otherOptions
-                        .foregroundStyle(viewmodel.currentBackground ?? .primary)
-                } label: {
-
-                        Text("...")
-                }
-                .frame(width: 30)
-                .menuIndicator(.hidden)
-                .onHover { isHovering in
-                    if isHovering {
-                        currentHoveredItem = .moreOptions
-                    } else {
-                        currentHoveredItem = .none
-                    }
-                }
-            }
-            if viewmodel.airplayDelay {
-                Image(systemName: "airplayaudio")
-                    .opacity(0.8)
-            }
-            if viewmodel.spotifyConnectDelay {
-                Image(systemName: "tortoise")
-                    .opacity(0.8)
-            }
             Spacer()
             Text(currentHoveredItem.description)
                 .minimumScaleFactor(0.8)
-                .textCase(.uppercase)
-                .font(.system(size: 12, weight: .light, design: .monospaced))
+                .font(.body)
             Spacer()
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
-            }
-            .onHover { isHovering in
-                if isHovering {
-                    currentHoveredItem = .quit
-                } else {
-                    currentHoveredItem = .none
-                }
             }
         }
         .padding(.top, 8)
@@ -616,15 +553,6 @@ struct MenubarWindowView: View {
         )
     }
     
-    var spotifyDelayBinding: Binding<Double> {
-        Binding(
-            get: { Double(viewmodel.userDefaultStorage.spotifyConnectDelayCount) },
-            set: { newValue in
-                let snapped = (round(newValue / 100) * 100)
-                viewmodel.userDefaultStorage.spotifyConnectDelayCount = Int(snapped)
-            }
-        )
-    }
     
     @ViewBuilder
     var menubarSizeSlider: some View {
@@ -643,23 +571,6 @@ struct MenubarWindowView: View {
         .tint(sliderTint)
     }
 
-    @ViewBuilder
-    var spotifyDelaySlider: some View {
-        @Bindable var viewmodel = viewmodel
-        HStack {
-            Image(systemName: "tortoise")
-                .frame(width: 34, alignment: .trailing)
-            Slider(value: spotifyDelayBinding, in: 300...3000, step: 100) {
-                Text("Spotify Delay")
-            }
-            .labelsHidden()
-            .frame(width: 160)
-            let seconds = Double(viewmodel.userDefaultStorage.spotifyConnectDelayCount) / 1000.0
-            Text("\(seconds.formatted(.number.precision(.fractionLength(1))))s")
-                .frame(width: 27)
-        }
-        .tint(sliderTint)
-    }
     
     private var sliderTint: Color? {
         if #available(macOS 26.0, *) {
@@ -715,10 +626,6 @@ struct MenubarWindowView: View {
             Divider()
             menubarSizeSlider
             volumeSlider
-            if viewmodel.spotifyConnectDelay {
-                Divider()
-                spotifyDelaySlider
-            }
             Divider()
             systemControlView
         }
@@ -741,9 +648,18 @@ struct MenubarWindowView: View {
             }
         }
         .onAppear {
+            isPanelVisible = panelAnchor.window?.occlusionState.contains(.visible) ?? true
+            if isPanelVisible { viewmodel.refreshPlaybackPosition() }
             if !viewmodel.isStopped {
                 viewmodel.currentVolume = viewmodel.currentPlayerInstance.volume
             }
+        }
+        .onDisappear { isPanelVisible = false }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeOcclusionStateNotification)) { notification in
+            guard let window = notification.object as? NSWindow, window === panelAnchor.window else { return }
+            let visible = window.occlusionState.contains(.visible)
+            if visible && !isPanelVisible { viewmodel.refreshPlaybackPosition() }
+            isPanelVisible = visible
         }
         .task {
             let languages = await Task.detached {

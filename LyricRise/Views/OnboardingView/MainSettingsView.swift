@@ -12,6 +12,7 @@
 //  Created by Avi Wadhwa on 2025-07-19.
 //
 
+import AppKit
 import SwiftUI
 import SDWebImageSwiftUI
 
@@ -26,9 +27,9 @@ enum MainSettingsError: Error, Identifiable, CaseIterable {
     var description: LocalizedStringKey {
         switch self {
         case .openSpotify:
-            return LocalizedStringKey("Please open Spotify!")
+            return LocalizedStringKey("Please open Spotify")
         case .openAppleMusic:
-            return LocalizedStringKey("Please open Apple Music!")
+            return LocalizedStringKey("Please open Apple Music")
         case .missingAuthorization:
             return LocalizedStringKey("Please give required permissions!")
         case .authorized:
@@ -38,6 +39,13 @@ enum MainSettingsError: Error, Identifiable, CaseIterable {
 }
 
 struct MainSettingsView: View {
+    let onDone: () -> Void
+
+    private enum Step: Hashable {
+        case spotifyLogin, lyricSize
+    }
+
+    @State private var path: [Step] = []
     @Environment(ViewModel.self) var viewModel
     @State var permissionDenied: Bool = false
     @State var error: MainSettingsError = .openSpotify
@@ -57,23 +65,9 @@ struct MainSettingsView: View {
     }
     
     @ViewBuilder
-    var onboardView: some View {
-        Image("LyricRiseIcon")
-            .resizable()
-            .frame(width: 150, height: 150, alignment: .center)
-            .clipShape(.rect(cornerRadius: 30))
-                    
-        Text("Welcome to LyricRise! 🎉")
-            .font(.largeTitle)
-                    
-        Text("Please pick between Spotify and Apple Music")
-            .font(.title)
-    }
-    
-    @ViewBuilder
     var permissionsOrNextButton: some View {
         if error == .authorized {
-            NavigationLink("Next", destination: ApiView())
+            NavigationLink("Next", value: Step.spotifyLogin)
                 .font(.headline)
                 .controlSize(.large)
                 .buttonStyle(.borderedProminent)
@@ -106,56 +100,65 @@ struct MainSettingsView: View {
                 }
                 .disabled(viewModel.currentPlayer == .spotify)
             }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
     
+    private var appleMusicIcon: Image {
+        let workspace = NSWorkspace.shared
+        guard let url = workspace.urlForApplication(withBundleIdentifier: "com.apple.Music") else {
+            return Image("music")
+        }
+        return Image(nsImage: workspace.icon(forFile: url.path))
+    }
+
     var body: some View {
-        @Bindable var viewmodel = viewModel
-        NavigationStack {
-            VStack(alignment: .center, spacing: 20) {
-                Group {
-                    if permissionDenied {
+        NavigationStack(path: $path) {
+            Form {
+                if permissionDenied {
+                    Section {
                         permissionDeniedView
-                    } else {
-                        onboardView
                     }
                 }
-                .transition(.fade)
-                
-                Picker("", selection: $spotifyOrAppleMusic) {
-                    VStack {
-                        Image("spotify")
-                            .resizable()
-                            .frame(width: 70.0, height: 70.0)
-                        Text("Spotify")
-                    }.tag(false)
-                    VStack {
-                        Image("music")
-                            .resizable()
-                            .frame(width: 70.0, height: 70.0)
-                        Text("Apple Music")
-                    }.tag(true)
+
+                Section {
+                    Picker("Please pick between Spotify and Apple Music", selection: $spotifyOrAppleMusic) {
+                        VStack {
+                            Text("Spotify")
+                            Image("spotify")
+                                .resizable()
+                                .frame(width: 70.0, height: 70.0)
+                        }.tag(false)
+                        VStack {
+                            Text("Apple Music")
+                            appleMusicIcon
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 70.0, height: 70.0)
+                        }.tag(true)
+                    }
+                    .pickerStyle(.radioGroup)
+                    .horizontalRadioGroupLayout()
+
+                    if error != .authorized {
+                        Text(error.description)
+                            .foregroundStyle(.secondary)
+                    }
+                    permissionsOrNextButton
                 }
-                .font(.title2)
-                .frame(width: 500)
-                .pickerStyle(.radioGroup)
-                .horizontalRadioGroupLayout()
-                            
-                Text(error.description)
-                    .transition(.opacity)
-                            
-                permissionsOrNextButton
-                    .frame(height: 40)
-                
-                VStack {
-                    Text("For support, please use [GitHub Issues](https://github.com/navel7/LyricRise/issues).")
-                    Text("⚠️ Disclaimer: I do not own the rights to Spotify or the lyric content presented.\nMusixmatch and Spotify own all rights to the lyrics.\nTranslations by InTheManXG and ARui-tw")
-                    Text("[LyricRise GitHub](https://github.com/navel7/LyricRise)\nVersion \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")")
+
+            }
+            .formStyle(.grouped)
+            .navigationDestination(for: Step.self) { step in
+                switch step {
+                case .spotifyLogin:
+                    ApiView(onContinue: { path.append(.lyricSize) })
+                case .lyricSize:
+                    FinalTruncationView(onDone: {
+                        path.removeAll()
+                        onDone()
+                    })
                 }
-                    .multilineTextAlignment(.center)
-                    .font(.callout)
-                    .padding(.top, 10)
-                    .frame(alignment: .bottom)
             }
             .animation(.bouncy, value: permissionDenied)
             .animation(.bouncy, value: error)

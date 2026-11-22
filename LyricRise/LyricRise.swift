@@ -168,7 +168,7 @@ struct LyricRise: App {
                 viewmodel.spotifyLyricProvider.accessToken = nil
             }
             .onChange(of: viewmodel.userDefaultStorage.karaokeTimingAdjustment) {
-                viewmodel.startKaraokeLyricUpdater()
+                viewmodel.startLyricUpdater()
             }
             .onChange(of: viewmodel.isPlaying) {
                 if viewmodel.isPlaying, viewmodel.showLyrics, viewmodel.userDefaultStorage.hasOnboarded {
@@ -241,7 +241,7 @@ struct LyricRise: App {
         .defaultSize(width: NSScreen.mainWidth, height: NSScreen.mainHeight)
         Window("LyricRise: Onboarding", id: "onboarding") { // << here !!
             if let viewmodel {
-            OnboardingWindow().frame(minWidth: 700, maxWidth: 700, minHeight: 600, maxHeight: 600, alignment: .center)
+            OnboardingWindow().frame(minWidth: 720, minHeight: 480)
                 .environment(viewmodel)
                 .onAppear {
                     NSApp.setActivationPolicy(.regular)
@@ -254,7 +254,7 @@ struct LyricRise: App {
             }
         }
         .windowResizability(.contentSize)
-        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 820, height: 600)
         Window("LyricRise: Searching for \(viewmodel?.currentlyPlayingName ?? "-") by \(viewmodel?.currentlyPlayingArtist ?? "-")", id: "search") {
             if let viewmodel {
             SearchWindow().frame(minWidth: 700, maxWidth: 700, minHeight: 500, maxHeight: 500, alignment: .center)
