@@ -28,12 +28,12 @@ final class UpdaterService {
 
     func monitorUpdates() async {
         while !Task.isCancelled {
-            await checkForUpdates()
             do {
                 try await Task.sleep(for: .seconds(6 * 60 * 60))
             } catch {
                 return
             }
+            await checkForUpdates()
         }
     }
 

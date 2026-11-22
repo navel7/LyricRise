@@ -30,6 +30,25 @@ struct LyricRise: App {
     @Environment(\.openWindow) var openWindow
     @Environment(\.dismissWindow) var dismissWindow
     @Environment(\.openURL) var openURL
+
+    @MainActor
+    private func presentStartupUpdate(version: String, url: URL) {
+        let defaults = UserDefaults.standard
+        let key = "shownStartupUpdateVersions"
+        let shown = defaults.stringArray(forKey: key) ?? []
+        guard !shown.contains(version) else { return }
+
+        let alert = NSAlert()
+        alert.messageText = String(localized: "LyricRise \(version) is available.")
+        alert.informativeText = String(localized: "Open the download page for this update?")
+        alert.addButton(withTitle: String(localized: "Open"))
+        alert.addButton(withTitle: String(localized: "Skip")).keyEquivalent = "\u{1b}"
+        defaults.set(shown + [version], forKey: key)
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            openURL(url)
+        }
+    }
     
     var body: some Scene {
         MenuBarExtra {
@@ -49,7 +68,15 @@ struct LyricRise: App {
             if let viewmodel {
             MenubarLabelView()
                 .environment(viewmodel)
-                .task { await viewmodel.updaterService.monitorUpdates() }
+                .task {
+                    let updater = viewmodel.updaterService
+                    await updater.checkForUpdates()
+                    guard !Task.isCancelled else { return }
+                    if case let .available(version, url) = updater.status {
+                        presentStartupUpdate(version: version, url: url)
+                    }
+                    await updater.monitorUpdates()
+                }
             .task(id: viewmodel.currentlyPlaying) {
                 if viewmodel.currentPlayer == .appleMusic {
                     print("Ignoring currentlyPlaying task because Apple Music album art workaround is active. Apple please fix AppleScript support on Apple Music pleaasee.")
