@@ -58,9 +58,20 @@ struct OnboardingWindow: View {
                             Toggle("Show Song Details in Menubar", isOn: $viewModel.userDefaultStorage.showSongDetailsInMenubar)
                         }
                         Section {
-                            Button("Check for Updates") {
-                                openURL(viewModel.updaterService.releasesURL)
+                            switch viewModel.updaterService.status {
+                            case .idle: EmptyView()
+                            case .checking: ProgressView("Checking for updates…")
+                            case .upToDate: Text("LyricRise is up to date.")
+                            case .unavailable: Text("Could not check for updates.").foregroundStyle(.secondary)
+                            case let .available(version, url):
+                                LabeledContent("LyricRise \(version) is available.") {
+                                    Link("Download Update", destination: url)
+                                }
                             }
+                            Button("Check for Updates") {
+                                Task { await viewModel.updaterService.checkForUpdates() }
+                            }
+                            .disabled(viewModel.updaterService.status == .checking)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                         }
                         Section {

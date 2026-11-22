@@ -49,6 +49,7 @@ struct LyricRise: App {
             if let viewmodel {
             MenubarLabelView()
                 .environment(viewmodel)
+                .task { await viewmodel.updaterService.monitorUpdates() }
             .task(id: viewmodel.currentlyPlaying) {
                 if viewmodel.currentPlayer == .appleMusic {
                     print("Ignoring currentlyPlaying task because Apple Music album art workaround is active. Apple please fix AppleScript support on Apple Music pleaasee.")

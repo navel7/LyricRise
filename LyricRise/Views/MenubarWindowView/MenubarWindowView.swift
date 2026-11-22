@@ -618,6 +618,15 @@ struct MenubarWindowView: View {
     
     var body: some View {
         VStack {
+            if case let .available(version, url) = viewmodel.updaterService.status {
+                HStack {
+                    Text("LyricRise \(version) is available.")
+                    Spacer()
+                    Link("Download Update", destination: url)
+                }
+                .font(.callout)
+                Divider()
+            }
             headerView
             Divider()
             lyricModifierView
