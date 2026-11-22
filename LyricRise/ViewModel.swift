@@ -1068,6 +1068,7 @@ import MediaRemoteAdapter
                 print("Found SongObject with ID:", songObject.id)
                 return lyricsArray
             } else {
+            stopLyricUpdater()
                 // No SongObject found with the given trackID
                 print("No SongObject found with the provided trackID. \(trackID)")
             }
